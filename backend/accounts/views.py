@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from core.models import User, Seller
 from django.db import transaction
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -72,56 +73,82 @@ class LoginView(APIView):
             password = request.data.get('password')
             is_seller = request.data.get('is_seller', False)
 
+            # Input validation
             if not email or not password:
                 return Response({
+                    'error': 'Missing credentials',
                     'detail': 'Please provide both email and password.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Use the EmailBackend for authentication
-            user = authenticate(request, email=email, password=password, is_seller=is_seller)
+            # Email format validation
+            if not '@' in email or not '.' in email:
+                return Response({
+                    'error': 'Invalid email format',
+                    'detail': 'Please provide a valid email address.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Attempt authentication using EmailBackend
+            user = authenticate(request, username=email, password=password, is_seller=is_seller)
 
             if not user:
                 return Response({
-                    'detail': 'Invalid credentials.'
+                    'error': 'Authentication failed',
+                    'detail': 'Invalid email or password.'
                 }, status=status.HTTP_401_UNAUTHORIZED)
+
+            # Check if user is active
+            if not user.is_active:
+                return Response({
+                    'error': 'Account inactive',
+                    'detail': 'Your account has been deactivated. Please contact support.'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # Handle seller authentication
+            if is_seller:
+                try:
+                    seller = user.seller
+                    if not seller.is_verified:
+                        return Response({
+                            'error': 'Seller verification pending',
+                            'detail': 'Your seller account is pending verification.'
+                        }, status=status.HTTP_403_FORBIDDEN)
+                except Seller.DoesNotExist:
+                    return Response({
+                        'error': 'Invalid account type',
+                        'detail': 'This account is not registered as a seller.'
+                    }, status=status.HTTP_403_FORBIDDEN)
 
             # Generate tokens
             refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-
-            # Get user type and data
-            try:
-                seller = user.seller
-                user_type = 'seller'
-                additional_data = SellerSerializer(seller).data
-            except Seller.DoesNotExist:
-                if is_seller:
-                    return Response({
-                        'detail': 'This account is not a seller account.'
-                    }, status=status.HTTP_403_FORBIDDEN)
-                user_type = 'customer'
-                additional_data = None
-
+            
+            # Prepare response data
             response_data = {
-                'access': access_token,
+                'access': str(refresh.access_token),
                 'refresh': str(refresh),
                 'user': {
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,
-                    'type': user_type,
+                    'type': 'seller' if is_seller else 'customer',
+                    'is_active': user.is_active,
+                    'last_login': user.last_login,
                 }
             }
 
-            if additional_data:
-                response_data['user']['seller_data'] = additional_data
+            # Add seller data if applicable
+            if is_seller:
+                response_data['user']['seller_data'] = SellerSerializer(user.seller).data
 
-            return Response(response_data)
+            # Update last login
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f"Login error: {str(e)}")  # Add logging for debugging
             return Response({
-                'detail': 'An error occurred during login. Please try again.'
+                'error': 'Server error',
+                'detail': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @method_decorator(csrf_exempt, name='dispatch')

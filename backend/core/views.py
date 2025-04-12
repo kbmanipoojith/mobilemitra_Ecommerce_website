@@ -71,19 +71,128 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.all().select_related('model', 'category', 'model__brand', 'seller')
         brand_id = self.request.query_params.get('brand', None)
         model_id = self.request.query_params.get('model', None)
-        category_id = self.request.query_params.get('category', None)
+        category = self.request.query_params.get('category', None)
 
-        if brand_id:
-            queryset = queryset.filter(model__brand_id=brand_id)
-        if model_id:
-            queryset = queryset.filter(model_id=model_id)
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
+        print("\n=== Debug Information ===")
+        print(f"Received parameters:")
+        print(f"- brand_id: {brand_id}")
+        print(f"- model_id: {model_id}")
+        print(f"- category: {category}")
 
-        return queryset
+        try:
+            # Print all available categories
+            all_categories = ProductCategory.objects.all()
+            print("\nAvailable categories in database:")
+            for cat in all_categories:
+                print(f"- {cat.name}")
+                products_count = Product.objects.filter(category=cat).count()
+                print(f"  Products in this category: {products_count}")
+
+            # Apply brand filter if provided
+            if brand_id:
+                queryset = queryset.filter(model__brand_id=brand_id)
+                print(f"\nAfter brand filter: {queryset.count()} products")
+
+            # Apply model filter if provided
+            if model_id:
+                try:
+                    model_id = int(model_id)
+                    queryset = queryset.filter(model_id=model_id)
+                    print(f"After model filter: {queryset.count()} products")
+                    
+                    # Print products for this model
+                    print("\nProducts for this model:")
+                    for product in queryset:
+                        print(f"- {product.name} (Category: {product.category.name})")
+                except (ValueError, TypeError):
+                    print(f"Invalid model_id: {model_id}")
+
+            # Apply category filter if provided
+            if category:
+                print(f"\nProcessing category filter: {category}")
+                
+                # Define exact category mappings
+                category_mapping = {
+                    'Batteries': ['Battery Replacement Parts', 'Battery'],
+                    'Screens & Displays': ['Screen & Display Assemblies', 'Screen'],
+                    'Charging Ports & Cables': ['Charging Port & Cable Modules', 'Charging Port'],
+                    'Cameras & Lens': ['Camera & Lens Assemblies', 'Camera'],
+                    'Power & Volume Buttons': ['Power & Volume Button Modules', 'Button'],
+                    'Speakers & Audio': ['Speaker & Audio Components', 'Speaker']
+                }
+                
+                # Try to find the category using the mapping
+                search_terms = category_mapping.get(category, [category])
+                category_query = queryset.filter(
+                    category__name__in=search_terms
+                )
+                
+                if not category_query.exists():
+                    # Try partial match if exact match fails
+                    print("No exact matches, trying partial match...")
+                    category_query = queryset.filter(
+                        category__name__icontains=category.split(' ')[0]
+                    )
+                
+                if category_query.exists():
+                    queryset = category_query
+                    print(f"Found {queryset.count()} products in category {category}")
+                    # Print found products
+                    for product in queryset:
+                        print(f"- {product.name} (Category: {product.category.name})")
+                else:
+                    print(f"No products found for category: {category}")
+                    return Product.objects.none()
+
+            result = queryset.order_by('name')
+            print(f"\nFinal query results: {result.count()} products")
+            return result
+
+        except Exception as e:
+            print(f"\nError in get_queryset: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Product.objects.none()
+
+    @action(detail=False, methods=['GET'])
+    def categories(self, request):
+        """Get all categories with their products count"""
+        try:
+            categories = ProductCategory.objects.annotate(
+                products_count=Count('products')
+            ).order_by('name')
+            
+            response_data = []
+            for category in categories:
+                response_data.append({
+                    'id': category.id,
+                    'name': category.name,
+                    'products_count': category.products_count,
+                    'normalized_name': self._normalize_category_name(category.name)
+                })
+            
+            return Response(response_data)
+        except Exception as e:
+            print(f"Error in categories: {str(e)}")
+            return Response(
+                {'error': 'Failed to fetch categories'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _normalize_category_name(self, name):
+        """Convert backend category names to frontend format"""
+        mapping = {
+            'Battery Replacement Parts': 'Batteries',
+            'Screen & Display Assemblies': 'Screens & Displays',
+            'Charging Port & Cable Modules': 'Charging Ports & Cables',
+            'Camera & Lens Assemblies': 'Cameras & Lens',
+            'Power & Volume Button Modules': 'Power & Volume Buttons',
+            'Speaker & Audio Components': 'Speakers & Audio'
+        }
+        return mapping.get(name, name)
 
 class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()

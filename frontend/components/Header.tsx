@@ -2,15 +2,33 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FaUser, FaShoppingCart, FaHeart, FaSearch } from 'react-icons/fa';
 
 export default function Header() {
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Handle search submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    // If you want real-time search without form submission:
+    if (window.location.pathname === '/products') {
+      router.push(`/products?search=${encodeURIComponent(e.target.value)}`);
+    }
+  };
 
   useEffect(() => {
     // Check authentication status when component mounts
@@ -90,14 +108,21 @@ export default function Header() {
 
           <div className="flex items-center space-x-6">
             <div className="hidden md:flex items-center">
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
                   placeholder="Search products..."
                   className="w-64 px-4 py-1 pr-8 rounded-md bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500"
                 />
-                <FaSearch className="absolute right-3 top-2 text-gray-400" />
-              </div>
+                <button 
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none"
+                >
+                  <FaSearch className="h-4 w-4" />
+                </button>
+              </form>
             </div>
 
             {isLoggedIn && (

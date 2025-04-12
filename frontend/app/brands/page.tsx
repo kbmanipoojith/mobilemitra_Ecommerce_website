@@ -110,7 +110,7 @@ export default function BrandsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {filteredBrands.map((brand) => (
             <Link
-              href={`/products?brand=${brand.id}`}
+              href={`/models/${brand.id}`}
               key={brand.id}
               className="group relative"
             >
