@@ -13,7 +13,7 @@ from .serializers import (
 )
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from django.utils import timezone
 from datetime import timedelta
 
@@ -71,108 +71,203 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Product.objects.all().select_related('model', 'category', 'model__brand', 'seller')
-        brand_id = self.request.query_params.get('brand', None)
-        model_id = self.request.query_params.get('model', None)
-        category = self.request.query_params.get('category', None)
-
-        print("\n=== Debug Information ===")
-        print(f"Received parameters:")
-        print(f"- brand_id: {brand_id}")
-        print(f"- model_id: {model_id}")
-        print(f"- category: {category}")
-
         try:
-            # Print all available categories
-            all_categories = ProductCategory.objects.all()
-            print("\nAvailable categories in database:")
-            for cat in all_categories:
-                print(f"- {cat.name}")
-                products_count = Product.objects.filter(category=cat).count()
-                print(f"  Products in this category: {products_count}")
+            queryset = Product.objects.all().select_related('model', 'category', 'model__brand', 'seller')
+            
+            # Debug log initial queryset count
+            print(f"Initial queryset count: {queryset.count()}")
+            
+            brand_id = self.request.query_params.get('brand', None)
+            model_id = self.request.query_params.get('model', None)
+            category = self.request.query_params.get('category', None)
+            search = self.request.query_params.get('search', None)
 
-            # Apply brand filter if provided
+            # Debug log received parameters
+            print(f"Received parameters - brand_id: {brand_id}, model_id: {model_id}, category: {category}, search: {search}")
+
+            if search:
+                search = search.strip()
+                search_query = (
+                    Q(name__icontains=search) |
+                    Q(description__icontains=search) |
+                    Q(model__brand__name__icontains=search) |
+                    Q(model__name__icontains=search) |
+                    Q(category__name__icontains=search)
+                )
+                queryset = queryset.filter(search_query)
+                print(f"After search filter count: {queryset.count()}")
+
             if brand_id:
                 queryset = queryset.filter(model__brand_id=brand_id)
-                print(f"\nAfter brand filter: {queryset.count()} products")
+                print(f"After brand filter count: {queryset.count()}")
 
-            # Apply model filter if provided
             if model_id:
-                try:
-                    model_id = int(model_id)
-                    queryset = queryset.filter(model_id=model_id)
-                    print(f"After model filter: {queryset.count()} products")
-                    
-                    # Print products for this model
-                    print("\nProducts for this model:")
-                    for product in queryset:
-                        print(f"- {product.name} (Category: {product.category.name})")
-                except (ValueError, TypeError):
-                    print(f"Invalid model_id: {model_id}")
+                queryset = queryset.filter(model_id=model_id)
+                print(f"After model filter count: {queryset.count()}")
 
-            # Apply category filter if provided
             if category:
-                print(f"\nProcessing category filter: {category}")
+                # Debug log category value
+                print(f"Processing category: {category}")
                 
-                # Define exact category mappings
-                category_mapping = {
-                    'Batteries': ['Battery Replacement Parts', 'Battery'],
-                    'Screens & Displays': ['Screen & Display Assemblies', 'Screen'],
-                    'Charging Ports & Cables': ['Charging Port & Cable Modules', 'Charging Port'],
-                    'Cameras & Lens': ['Camera & Lens Assemblies', 'Camera'],
-                    'Power & Volume Buttons': ['Power & Volume Button Modules', 'Button'],
-                    'Speakers & Audio': ['Speaker & Audio Components', 'Speaker']
+                # Define standard category mappings
+                standard_categories = {
+                    'Battery Replacement Parts': [
+                        'Battery Replacement Parts',
+                        'Batteries',
+                        'Battery',
+                        'Battery Parts'
+                    ],
+                    'Screen & Display Assemblies': [
+                        'Screen & Display Assemblies',
+                        'Screens & Displays',
+                        'Screen',
+                        'Display',
+                        'Screens'
+                    ],
+                    'Charging Port & Cable Modules': [
+                        'Charging Port & Cable Modules',
+                        'Charging Ports & Cables',
+                        'Charging Port',
+                        'Charging',
+                        'Cables',
+                        'Charging Ports'
+                    ],
+                    'Camera & Lens Assemblies': [
+                        'Camera & Lens Assemblies',
+                        'Cameras & Lens',
+                        'Camera',
+                        'Lens',
+                        'Cameras'
+                    ],
+                    'Power & Volume Button Modules': [
+                        'Power & Volume Button Modules',
+                        'Power & Volume Buttons',
+                        'Button',
+                        'Buttons',
+                        'Power Button'
+                    ],
+                    'Speaker & Audio Components': [
+                        'Speaker & Audio Components',
+                        'Speakers & Audio',
+                        'Speaker',
+                        'Audio',
+                        'Speakers'
+                    ]
                 }
+
+                # Find the standard category name
+                standard_category = None
+                normalized_category = category.strip()
                 
-                # Try to find the category using the mapping
-                search_terms = category_mapping.get(category, [category])
-                category_query = queryset.filter(
-                    category__name__in=search_terms
-                )
+                for std_cat, variations in standard_categories.items():
+                    if normalized_category in variations:
+                        standard_category = std_cat
+                        break
                 
-                if not category_query.exists():
-                    # Try partial match if exact match fails
-                    print("No exact matches, trying partial match...")
-                    category_query = queryset.filter(
-                        category__name__icontains=category.split(' ')[0]
-                    )
-                
-                if category_query.exists():
-                    queryset = category_query
-                    print(f"Found {queryset.count()} products in category {category}")
-                    # Print found products
-                    for product in queryset:
-                        print(f"- {product.name} (Category: {product.category.name})")
+                if standard_category:
+                    print(f"Using standard category: {standard_category}")
+                    queryset = queryset.filter(category__name=standard_category)
                 else:
-                    print(f"No products found for category: {category}")
-                    return Product.objects.none()
+                    print(f"No standard category found for: {normalized_category}")
+                    queryset = queryset.filter(category__name__iexact=normalized_category)
+                
+                print(f"After category filter count: {queryset.count()}")
 
-            result = queryset.order_by('name')
-            print(f"\nFinal query results: {result.count()} products")
-            return result
-
+            final_queryset = queryset.order_by('name').distinct()
+            print(f"Final queryset count: {final_queryset.count()}")
+            if final_queryset.exists():
+                print("Sample of categories in final queryset:", list(final_queryset.values_list('category__name', flat=True))[:5])
+            
+            return final_queryset
+            
         except Exception as e:
-            print(f"\nError in get_queryset: {str(e)}")
+            print(f"Error in get_queryset: {str(e)}")
             import traceback
-            traceback.print_exc()
+            print(f"Full traceback: {traceback.format_exc()}")
             return Product.objects.none()
+
+    @action(detail=False, methods=['GET'])
+    def debug_categories(self, request):
+        """Debug endpoint to check all available categories and their products"""
+        try:
+            all_categories = ProductCategory.objects.all()
+            response_data = []
+            
+            for category in all_categories:
+                product_count = Product.objects.filter(category=category).count()
+                response_data.append({
+                    'id': category.id,
+                    'name': category.name,
+                    'product_count': product_count,
+                    'sample_products': list(
+                        Product.objects.filter(category=category)
+                        .values('id', 'name', 'category__name')[:3]
+                    )
+                })
+            
+            return Response(response_data)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=['GET'])
     def categories(self, request):
         """Get all categories with their products count"""
         try:
+            # Get all categories with their product counts
             categories = ProductCategory.objects.annotate(
                 products_count=Count('products')
             ).order_by('name')
             
+            # Define standard category names and their display names
+            standard_categories = {
+                'Battery Replacement Parts': {
+                    'display_name': 'Batteries',
+                    'url_name': 'Batteries',
+                    'group': 'batteries'
+                },
+                'Screen & Display Assemblies': {
+                    'display_name': 'Screens & Displays',
+                    'url_name': 'Screens & Displays',
+                    'group': 'screens'
+                },
+                'Charging Port & Cable Modules': {
+                    'display_name': 'Charging Ports & Cables',
+                    'url_name': 'Charging Ports & Cables',
+                    'group': 'charging'
+                },
+                'Camera & Lens Assemblies': {
+                    'display_name': 'Cameras & Lens',
+                    'url_name': 'Cameras & Lens',
+                    'group': 'cameras'
+                },
+                'Power & Volume Button Modules': {
+                    'display_name': 'Power & Volume Buttons',
+                    'url_name': 'Power & Volume Buttons',
+                    'group': 'buttons'
+                },
+                'Speaker & Audio Components': {
+                    'display_name': 'Speakers & Audio',
+                    'url_name': 'Speakers & Audio',
+                    'group': 'speakers'
+                }
+            }
+            
+            # Prepare response data with standardized names
             response_data = []
             for category in categories:
-                response_data.append({
-                    'id': category.id,
-                    'name': category.name,
-                    'products_count': category.products_count,
-                    'normalized_name': self._normalize_category_name(category.name)
-                })
+                if category.name in standard_categories:
+                    cat_info = standard_categories[category.name]
+                    response_data.append({
+                        'id': category.id,
+                        'name': category.name,
+                        'display_name': cat_info['display_name'],
+                        'url_name': cat_info['url_name'],
+                        'group': cat_info['group'],
+                        'products_count': category.products_count
+                    })
             
             return Response(response_data)
         except Exception as e:
@@ -181,18 +276,6 @@ class ProductViewSet(viewsets.ModelViewSet):
                 {'error': 'Failed to fetch categories'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    def _normalize_category_name(self, name):
-        """Convert backend category names to frontend format"""
-        mapping = {
-            'Battery Replacement Parts': 'Batteries',
-            'Screen & Display Assemblies': 'Screens & Displays',
-            'Charging Port & Cable Modules': 'Charging Ports & Cables',
-            'Camera & Lens Assemblies': 'Cameras & Lens',
-            'Power & Volume Button Modules': 'Power & Volume Buttons',
-            'Speaker & Audio Components': 'Speakers & Audio'
-        }
-        return mapping.get(name, name)
 
 class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()

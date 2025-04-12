@@ -18,43 +18,49 @@ interface Product {
   category_name: string;
 }
 
-// Define product categories with exact backend names and mapping
+// Define product categories with exact backend names
 const PRODUCT_CATEGORIES = [
   { 
-    id: 'Batteries',
-    name: 'Batteries',
-    icon: 'battery',
-    backendNames: ['Battery Replacement Parts', 'Battery']
+    id: 'batteries',
+    name: 'Battery Replacement Parts',
+    displayName: 'Batteries',
+    urlName: 'Batteries',
+    group: 'batteries'
   },
   { 
-    id: 'Screens & Displays',
-    name: 'Screens & Displays',
-    icon: 'screen',
-    backendNames: ['Screen & Display Assemblies', 'Screen']
+    id: 'screens',
+    name: 'Screen & Display Assemblies',
+    displayName: 'Screens & Displays',
+    urlName: 'Screens & Displays',
+    group: 'screens'
   },
   { 
-    id: 'Charging Ports & Cables',
-    name: 'Charging Ports & Cables',
-    icon: 'charging',
-    backendNames: ['Charging Port & Cable Modules', 'Charging Port']
+    id: 'charging',
+    name: 'Charging Port & Cable Modules',
+    displayName: 'Charging Ports & Cables',
+    urlName: 'Charging Ports & Cables',
+    group: 'charging'
   },
   { 
-    id: 'Cameras & Lens',
-    name: 'Cameras & Lens',
-    icon: 'camera',
-    backendNames: ['Camera & Lens Assemblies', 'Camera']
+    id: 'cameras',
+    name: 'Camera & Lens Assemblies',
+    displayName: 'Cameras & Lens',
+    urlName: 'Cameras & Lens',
+    group: 'cameras'
   },
   { 
-    id: 'Power & Volume Buttons',
-    name: 'Power & Volume Buttons',
-    icon: 'button',
-    backendNames: ['Power & Volume Button Modules', 'Button']
+    id: 'buttons',
+    name: 'Power & Volume Button Modules',
+    displayName: 'Power & Volume Buttons',
+    urlName: 'Power & Volume Buttons',
+    group: 'buttons'
   },
   { 
-    id: 'Speakers & Audio',
-    name: 'Speakers & Audio',
-    icon: 'speaker',
-    backendNames: ['Speaker & Audio Components', 'Speaker']
+    id: 'speakers',
+    name: 'Speaker & Audio Components',
+    displayName: 'Speakers & Audio',
+    urlName: 'Speakers & Audio',
+    group: 'speakers'
   }
 ];
 
@@ -240,65 +246,96 @@ interface GroupedProducts {
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const searchParams = useSearchParams();
-  const modelId = searchParams.get('model');
+
+  // Get URL parameters
   const brandId = searchParams.get('brand');
+  const modelId = searchParams.get('model');
   const category = searchParams.get('category');
   const searchQuery = searchParams.get('search');
 
+  // Debug log for URL parameters
+  useEffect(() => {
+    console.log('URL Parameters:', {
+      brand: brandId,
+      model: modelId,
+      category,
+      search: searchQuery
+    });
+  }, [brandId, modelId, category, searchQuery]);
+
   const getPageTitle = () => {
-    return 'All Spare Parts';
+    if (searchQuery) return `Search results for "${searchQuery}"`;
+    if (category) return `${category} Parts`;
+    if (modelId) return 'Model Parts';
+    if (brandId) return 'Brand Parts';
+    return 'All Parts';
   };
 
   const fetchProducts = async () => {
+    setLoading(true);
+    setError('');
+    
     try {
-      setLoading(true);
-      setError('');
-      
       let url = 'http://localhost:8000/api/products/';
       const params = new URLSearchParams();
-      
-      // Add search query if present
+
+      if (brandId) {
+        params.append('brand', brandId);
+      }
+      if (modelId) {
+        params.append('model', modelId);
+      }
+      if (category) {
+        // Find exact category match
+        const matchedCategory = PRODUCT_CATEGORIES.find(cat => 
+          cat.urlName === category ||
+          cat.displayName === category ||
+          cat.name === category
+        );
+
+        if (matchedCategory) {
+          // Use the exact backend category name
+          params.append('category', matchedCategory.name);
+          console.log('Using backend category name:', matchedCategory.name);
+        } else {
+          // If no match found, use the original category
+          params.append('category', category);
+          console.log('Using original category:', category);
+        }
+      }
       if (searchQuery) {
         params.append('search', searchQuery);
       }
-      
-      // Add other filters
-      if (modelId && modelId !== 'all') {
-        params.append('model_id', modelId);
-      }
-      if (brandId && brandId !== 'all') {
-        params.append('brand_id', brandId);
-      }
-      if (category && category !== 'all') {
-        params.append('category', category);
-      }
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
+
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
       }
 
       console.log('Fetching products from:', url);
       
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to fetch products: ${response.status}`);
+        const data = await response.json();
+        throw new Error(data.error || `Failed to fetch products: ${response.status}`);
       }
-
+      
       const data = await response.json();
       console.log('Received products:', data);
       
       if (Array.isArray(data)) {
         setProducts(data);
+        setError('');
       } else {
-        throw new Error('Invalid data format received from API');
+        throw new Error('Invalid data format received from server');
       }
     } catch (err) {
       console.error('Error fetching products:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch products');
+      setError(err instanceof Error ? err.message : 'Failed to load products');
       setProducts([]);
     } finally {
       setLoading(false);
@@ -306,9 +343,9 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    console.log('Parameters changed:', { modelId, brandId, category, searchQuery });
+    console.log('Parameters changed:', { brandId, modelId, category, searchQuery });
     fetchProducts();
-  }, [modelId, brandId, category, searchQuery]);
+  }, [brandId, modelId, category, searchQuery]);
 
   const addToCart = async (productId: number) => {
     try {
@@ -384,14 +421,14 @@ export default function ProductsPage() {
         {PRODUCT_CATEGORIES.map((cat) => (
           <Link
             key={cat.id}
-            href={`/products?category=${cat.name}`}
+            href={`/products?category=${encodeURIComponent(cat.urlName)}`}
             className={`px-4 py-2 rounded-lg transition-colors duration-300 ${
-              category === cat.name
+              category === cat.urlName
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
             }`}
           >
-            {cat.name}
+            {cat.displayName}
           </Link>
         ))}
       </div>

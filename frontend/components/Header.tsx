@@ -24,11 +24,16 @@ export default function Header() {
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    // If you want real-time search without form submission:
-    if (window.location.pathname === '/products') {
-      router.push(`/products?search=${encodeURIComponent(e.target.value)}`);
-    }
   };
+
+  // Update search query from URL when on products page
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlSearchQuery = searchParams.get('search');
+    if (urlSearchQuery) {
+      setSearchQuery(urlSearchQuery);
+    }
+  }, []);
 
   useEffect(() => {
     // Check authentication status when component mounts
