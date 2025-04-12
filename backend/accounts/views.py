@@ -88,7 +88,7 @@ class LoginView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             # Attempt authentication using EmailBackend
-            user = authenticate(request, username=email, password=password, is_seller=is_seller)
+            user = authenticate(request, email=email, password=password, is_seller=is_seller)
 
             if not user:
                 return Response({
@@ -103,20 +103,24 @@ class LoginView(APIView):
                     'detail': 'Your account has been deactivated. Please contact support.'
                 }, status=status.HTTP_403_FORBIDDEN)
 
-            # Handle seller authentication
-            if is_seller:
-                try:
-                    seller = user.seller
-                    if not seller.is_verified:
-                        return Response({
-                            'error': 'Seller verification pending',
-                            'detail': 'Your seller account is pending verification.'
-                        }, status=status.HTTP_403_FORBIDDEN)
-                except Seller.DoesNotExist:
+            # Get user type and additional data
+            try:
+                seller = user.seller
+                user_type = 'seller'
+                if is_seller and not seller.is_verified:
+                    return Response({
+                        'error': 'Seller verification pending',
+                        'detail': 'Your seller account is pending verification.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+                additional_data = SellerSerializer(seller).data
+            except Seller.DoesNotExist:
+                if is_seller:
                     return Response({
                         'error': 'Invalid account type',
                         'detail': 'This account is not registered as a seller.'
                     }, status=status.HTTP_403_FORBIDDEN)
+                user_type = 'customer'
+                additional_data = None
 
             # Generate tokens
             refresh = RefreshToken.for_user(user)
@@ -129,15 +133,14 @@ class LoginView(APIView):
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,
-                    'type': 'seller' if is_seller else 'customer',
+                    'type': user_type,
                     'is_active': user.is_active,
                     'last_login': user.last_login,
                 }
             }
 
-            # Add seller data if applicable
-            if is_seller:
-                response_data['user']['seller_data'] = SellerSerializer(user.seller).data
+            if additional_data:
+                response_data['user']['seller_data'] = additional_data
 
             # Update last login
             user.last_login = timezone.now()
