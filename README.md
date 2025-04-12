@@ -171,10 +171,6 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contact
-
-Project Link: [https://github.com/yourusername/mobilemitra](https://github.com/yourusername/mobilemitra)
-
 ## Acknowledgments
 - Django REST Framework
 - Next.js
