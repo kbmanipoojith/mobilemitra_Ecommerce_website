@@ -71,7 +71,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-<<<<<<< HEAD
         queryset = Product.objects.all().select_related('model', 'category', 'model__brand', 'seller')
         brand_id = self.request.query_params.get('brand', None)
         model_id = self.request.query_params.get('model', None)
@@ -194,21 +193,6 @@ class ProductViewSet(viewsets.ModelViewSet):
             'Speaker & Audio Components': 'Speakers & Audio'
         }
         return mapping.get(name, name)
-=======
-        queryset = Product.objects.all()
-        brand_id = self.request.query_params.get('brand', None)
-        model_id = self.request.query_params.get('model', None)
-        category_id = self.request.query_params.get('category', None)
-
-        if brand_id:
-            queryset = queryset.filter(model__brand_id=brand_id)
-        if model_id:
-            queryset = queryset.filter(model_id=model_id)
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
-
-        return queryset
->>>>>>> origin/master
 
 class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()
