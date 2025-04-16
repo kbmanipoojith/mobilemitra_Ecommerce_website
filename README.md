@@ -177,3 +177,42 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Next.js
 - Tailwind CSS
 - React Icons 
+
+# Screenshots
+![1](https://github.com/user-attachments/assets/82704207-6274-468c-82e8-04ee8e536619)
+![2](https://github.com/user-attachments/assets/3102aefb-7e9b-4ce1-974d-49b21784bb5a)
+![3](https://github.com/user-attachments/assets/7c50efde-e24d-425a-8403-018dd4ba4243)
+![4](https://github.com/user-attachments/assets/fadcbab5-4bf5-4fda-8b14-593d5cf99e7b)
+![5](https://github.com/user-attachments/assets/c54b9317-767a-4b1b-a8b3-52681da1ddf2)
+![6](https://github.com/user-attachments/assets/a4239e5a-cb15-41ab-908b-e3b5e75d77a0)
+![7](https://github.com/user-attachments/assets/1578560a-160e-4229-a3be-a7edf3591c3a)
+![8](https://github.com/user-attachments/assets/af5ec31b-e4b5-4d18-a708-7772811f99bc)
+![9](https://github.com/user-attachments/assets/65e54c49-8523-4286-9f7b-afae765127c4)
+![10](https://github.com/user-attachments/assets/09512144-a2ad-47c8-b9ed-1e0fbfcb2a6f)
+![11](https://github.com/user-attachments/assets/1b7658c7-a0f5-4994-b27a-04064036becd)
+![12](https://github.com/user-attachments/assets/55f63054-fea9-499f-9bcb-4a2b8c5276f2)
+![13](https://github.com/user-attachments/assets/74592336-47c1-4e92-9d50-40ca83120c8f)
+![14](https://github.com/user-attachments/assets/d7325aa6-0899-40f0-8b2e-43793fc52085)
+![15](https://github.com/user-attachments/assets/56225884-d78d-463d-b5b7-192df0356dfa)
+![16](https://github.com/user-attachments/assets/d838ce83-d658-4250-a677-ad6904db66cd)
+![17](https://github.com/user-attachments/assets/7ca3fb88-2f70-413a-82a8-136dda448566)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
