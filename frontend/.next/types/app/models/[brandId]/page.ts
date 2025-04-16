@@ -1,4 +1,4 @@
-// File: F:\new cursor\mobilemitra_Ecommerce_website\frontend\app\models\[brandId]\page.tsx
+// File: C:\cursor new ver\cursor new\mobilemitra\frontend\app\models\[brandId]\page.tsx
 import * as entry from '../../../../../app/models/[brandId]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

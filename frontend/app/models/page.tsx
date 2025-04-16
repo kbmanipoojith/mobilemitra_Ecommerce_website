@@ -25,6 +25,15 @@ export default function ModelsPage() {
   const searchParams = useSearchParams();
   const brandId = searchParams.get('brand');
 
+  const getModelImage = (modelName: string, brandName: string) => {
+    // Format the brand name and model name to match the image filenames
+    const formattedBrandName = brandName.toUpperCase();
+    const formattedModelName = modelName.replace(/\s+/g, '_');
+    
+    // Try both formats (with and without brand prefix)
+    return `/assets/phones/${formattedBrandName}_${formattedModelName}.jpg`;
+  };
+
   useEffect(() => {
     fetchModels();
   }, [brandId]);
@@ -58,16 +67,6 @@ export default function ModelsPage() {
     }
   };
 
-  // Group models by brand
-  const groupedModels = models.reduce<{ [key: string]: Model[] }>((acc, model) => {
-    const brandName = model.brand_name || 'Other';
-    if (!acc[brandName]) {
-      acc[brandName] = [];
-    }
-    acc[brandName].push(model);
-    return acc;
-  }, {});
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-[#0f172a] to-[#1e293b]">
@@ -86,45 +85,69 @@ export default function ModelsPage() {
         </div>
       )}
 
-      {Object.entries(groupedModels).length === 0 ? (
+      {models.length === 0 ? (
         <div className="text-center text-gray-400 mt-8 p-8 bg-[#1e293b]/50 backdrop-blur-sm rounded-xl border border-gray-700/50">
           No models found.
         </div>
       ) : (
-        <div className="space-y-8">
-          {Object.entries(groupedModels).map(([brandName, brandModels]) => (
-            <div key={brandName} className="bg-[#1e293b]/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
-              <h2 className="text-2xl font-semibold text-white mb-4">{brandName}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {brandModels.map((model) => (
-                  <Link
-                    key={model.id}
-                    href={`/products?model=${model.id}`}
-                    className="group bg-gray-800/50 rounded-lg p-4 hover:bg-gray-700/50 transition-all duration-300 border border-gray-700/50 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10"
-                  >
-                    <div className="aspect-w-16 aspect-h-9 mb-4 bg-gray-900 rounded-lg overflow-hidden">
-                      {model.image ? (
-                        <img
-                          src={model.image}
-                          alt={model.name}
-                          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500">
-                          No image
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="text-lg font-medium text-white group-hover:text-blue-400 transition-colors duration-300">
-                      {model.name}
-                    </h3>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Click to view spare parts
-                    </p>
-                  </Link>
-                ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {models.map((model) => (
+            <Link
+              key={model.id}
+              href={`/products?model=${model.id}`}
+              className="group bg-[#1e293b]/50 backdrop-blur-sm rounded-lg p-4 hover:bg-[#1e293b]/70 transition-all duration-300 border border-gray-700/50 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10"
+            >
+              <div className="aspect-w-16 aspect-h-9 mb-2 bg-gray-900 rounded-lg overflow-hidden">
+                <img
+                  src={getModelImage(model.name, model.brand_name)}
+                  alt={model.name}
+                  className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const brandName = model.brand_name?.toUpperCase() || '';
+                    const modelName = model.name.replace(/\s+/g, '_');
+                    
+                    // Try different formats
+                    const formats = [
+                      `/assets/phones/${modelName}.jpg`,  // Try without brand name
+                      `/assets/phones/${brandName}_${modelName}.png`,  // Try PNG format
+                      `/assets/phones/${modelName}.png`,  // Try PNG without brand name
+                      `/assets/phones/${model.name}.jpg`,  // Try with spaces
+                      `/assets/phones/${model.name}.png`,  // Try with spaces PNG
+                      // Try with brand name variations
+                      `/assets/phones/${model.brand_name}_${modelName}.jpg`,
+                      `/assets/phones/${model.brand_name}_${modelName}.png`,
+                      `/assets/phones/${model.brand_name}_${model.name}.jpg`,
+                      `/assets/phones/${model.brand_name}_${model.name}.png`
+                    ];
+                    
+                    let currentFormat = 0;
+                    const tryNextFormat = () => {
+                      currentFormat++;
+                      if (currentFormat < formats.length) {
+                        console.log('Trying format:', formats[currentFormat]); // Debug log
+                        target.src = formats[currentFormat];
+                        target.onerror = tryNextFormat;
+                      } else {
+                        console.log('All formats failed, using fallback image'); // Debug log
+                        target.src = '/assets/file.svg';
+                        target.className = 'w-16 h-16 m-auto opacity-50';
+                        target.onerror = null; // Prevent further retries
+                      }
+                    };
+                    
+                    target.onerror = tryNextFormat;
+                    target.src = formats[0];
+                  }}
+                />
               </div>
-            </div>
+              <h3 className="text-lg font-medium text-white group-hover:text-blue-400 transition-colors duration-300 truncate">
+                {model.name}
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Click to view spare parts
+              </p>
+            </Link>
           ))}
         </div>
       )}
