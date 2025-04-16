@@ -71,6 +71,20 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
+<<<<<<< HEAD
+=======
+        queryset = Product.objects.all().select_related('model', 'category', 'model__brand', 'seller')
+        brand_id = self.request.query_params.get('brand', None)
+        model_id = self.request.query_params.get('model', None)
+        category = self.request.query_params.get('category', None)
+
+        print("\n=== Debug Information ===")
+        print(f"Received parameters:")
+        print(f"- brand_id: {brand_id}")
+        print(f"- model_id: {model_id}")
+        print(f"- category: {category}")
+
+>>>>>>> 39b3f51d76ec701546868349bbab86ddfedf0e85
         try:
             queryset = Product.objects.all().select_related('model', 'category', 'model__brand', 'seller')
             
@@ -277,6 +291,21 @@ class ProductViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+<<<<<<< HEAD
+=======
+    def _normalize_category_name(self, name):
+        """Convert backend category names to frontend format"""
+        mapping = {
+            'Battery Replacement Parts': 'Batteries',
+            'Screen & Display Assemblies': 'Screens & Displays',
+            'Charging Port & Cable Modules': 'Charging Ports & Cables',
+            'Camera & Lens Assemblies': 'Cameras & Lens',
+            'Power & Volume Button Modules': 'Power & Volume Buttons',
+            'Speaker & Audio Components': 'Speakers & Audio'
+        }
+        return mapping.get(name, name)
+
+>>>>>>> 39b3f51d76ec701546868349bbab86ddfedf0e85
 class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer

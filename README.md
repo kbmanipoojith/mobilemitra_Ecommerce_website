@@ -81,6 +81,7 @@ MobileMitra is a full-stack e-commerce platform specializing in mobile phone par
    ```sql
    CREATE DATABASE mobilemitra CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
+**Note:** If you face any issues during setup, please **import the database manually** using the `mobilemitra.sql` file located in the `backend` folder.
 
 6. Apply migrations:
    ```bash

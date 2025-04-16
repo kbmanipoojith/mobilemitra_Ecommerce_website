@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/support/faqs/page": "app/support/faqs/page.js",
@@ -9,3 +10,6 @@
   "/brands/page": "app/brands/page.js",
   "/models/[brandId]/page": "app/models/[brandId]/page.js"
 }
+=======
+{}
+>>>>>>> 39b3f51d76ec701546868349bbab86ddfedf0e85
