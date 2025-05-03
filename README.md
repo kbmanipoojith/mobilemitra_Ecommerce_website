@@ -81,8 +81,12 @@ MobileMitra is a full-stack multi vendor e-commerce platform specializing in mob
    ```sql
    CREATE DATABASE mobilemitra CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
-''If you face any difficulty in creating the database, you can directly import it using the mobilemitra.sql file located in the backend folder'''
-**Note:** Products will be displayed after the successful import of the database.
+> **If you face any difficulty in creating the database, you can directly import it using the `mobilemitra.sql` file located in the `backend` folder.**
+
+> **Note:** *Products will be displayed after the successful import of the database.*
+
+
+
 6. Apply migrations:
    ```bash
    python manage.py makemigrations
