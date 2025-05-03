@@ -4,7 +4,20 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { FaShoppingCart, FaHeart, FaStar } from 'react-icons/fa';
 
-const products = [
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  brand: string;
+  model: string;
+  rating: number;
+  reviews: number;
+  inStock: boolean;
+  category_name: string;
+}
+
+const products: Product[] = [
   {
     id: 1,
     name: 'Samsung Galaxy S21 Battery',
@@ -14,7 +27,8 @@ const products = [
     model: 'Galaxy S21',
     rating: 4.5,
     reviews: 128,
-    inStock: true
+    inStock: true,
+    category_name: 'Battery Replacement Parts'
   },
   {
     id: 2,
@@ -25,7 +39,8 @@ const products = [
     model: 'iPhone 13',
     rating: 4.8,
     reviews: 256,
-    inStock: true
+    inStock: true,
+    category_name: 'Screen & Display Assemblies'
   },
   {
     id: 3,
@@ -36,7 +51,8 @@ const products = [
     model: 'Find X3',
     rating: 4.3,
     reviews: 89,
-    inStock: false
+    inStock: false,
+    category_name: 'Power & Volume Button Modules'
   },
   {
     id: 4,
@@ -47,7 +63,8 @@ const products = [
     model: 'Mi 11',
     rating: 4.6,
     reviews: 167,
-    inStock: true
+    inStock: true,
+    category_name: 'Camera & Lens Assemblies'
   },
   {
     id: 5,
@@ -58,7 +75,8 @@ const products = [
     model: '9 Pro',
     rating: 4.7,
     reviews: 143,
-    inStock: true
+    inStock: true,
+    category_name: 'Charging Port & Cable Modules'
   },
   {
     id: 6,
@@ -69,7 +87,8 @@ const products = [
     model: 'Galaxy S23',
     rating: 4.4,
     reviews: 92,
-    inStock: true
+    inStock: true,
+    category_name: 'Speaker & Audio Components'
   },
   {
     id: 7,
@@ -80,7 +99,8 @@ const products = [
     model: 'iPhone 14 Pro',
     rating: 4.9,
     reviews: 215,
-    inStock: true
+    inStock: true,
+    category_name: 'Battery Replacement Parts'
   },
   {
     id: 8,
@@ -91,12 +111,14 @@ const products = [
     model: 'Pixel 7',
     rating: 4.7,
     reviews: 178,
-    inStock: true
+    inStock: true,
+    category_name: 'Screen & Display Assemblies'
   }
 ];
 
 export default function FeaturedProducts() {
   const [wishlist, setWishlist] = useState<number[]>([]);
+  const [error, setError] = useState<string>('');
 
   const toggleWishlist = (productId: number) => {
     setWishlist(prev => 
@@ -104,6 +126,69 @@ export default function FeaturedProducts() {
         ? prev.filter(id => id !== productId)
         : [...prev, productId]
     );
+  };
+
+  const addToCart = async (product: Product) => {
+    try {
+      if (!product.inStock) {
+        throw new Error('Product is out of stock');
+      }
+
+      const token = localStorage.getItem('token');
+      if (token) {
+        // For logged-in users, add to server cart
+        const response = await fetch('http://localhost:8000/api/cart/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${token}`
+          },
+          body: JSON.stringify({
+            product: product.id,
+            quantity: 1
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to add to cart');
+        }
+
+        // Dispatch cart updated event for logged-in users
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+      } else {
+        // For non-logged in users, add to localStorage cart
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const existingItem = cart.find((item: any) => item.product === product.id);
+        
+        if (existingItem) {
+          existingItem.quantity += 1;
+        } else {
+          cart.push({
+            product: product.id,
+            quantity: 1,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            brand_name: product.brand,
+            model_name: product.model,
+            category_name: product.category_name
+          });
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(cart));
+        
+        // Dispatch both events to ensure all listeners are notified
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+      }
+
+      // Show success message
+      alert('Item added to cart successfully!');
+      setError('');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setError(error instanceof Error ? error.message : 'Failed to add item to cart');
+    }
   };
 
   return (
@@ -117,6 +202,12 @@ export default function FeaturedProducts() {
             Popular mobile parts from top brands
           </p>
         </div>
+
+        {error && (
+          <div className="mt-4 text-center text-red-500">
+            {error}
+          </div>
+        )}
 
         <div className="mt-12 grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => (
@@ -187,6 +278,7 @@ export default function FeaturedProducts() {
                     ${product.price.toFixed(2)}
                   </p>
                   <button
+                    onClick={() => addToCart(product)}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
                       product.inStock
                         ? 'bg-blue-600 hover:bg-blue-700 text-white'

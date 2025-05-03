@@ -12,6 +12,7 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const [cartCount, setCartCount] = useState(0);
 
   // Handle search submission
   const handleSearch = (e: React.FormEvent) => {
@@ -53,6 +54,21 @@ export default function Header() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    // Get cart count from localStorage
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    setCartCount(cart.length);
+
+    // Listen for cart updates
+    const handleStorageChange = () => {
+      const updatedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      setCartCount(updatedCart.length);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleLogout = async () => {
@@ -130,14 +146,17 @@ export default function Header() {
               </form>
             </div>
 
-            {isLoggedIn && (
-              <Link 
-                href="/user/cart" 
-                className="text-gray-300 hover:text-white transition-colors relative"
-              >
-                <FaShoppingCart className="h-6 w-6" />
-              </Link>
-            )}
+            <Link
+              href="/cart"
+              className="text-gray-300 hover:text-white transition-colors relative"
+            >
+              <FaShoppingCart className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
 
             {isLoggedIn && (
               <Link 

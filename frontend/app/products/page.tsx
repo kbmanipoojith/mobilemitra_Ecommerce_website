@@ -355,30 +355,64 @@ export default function ProductsPage() {
 
   const addToCart = async (productId: number) => {
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('Please login to add items to cart');
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        throw new Error('Product not found');
       }
 
-      const response = await fetch('http://localhost:8000/api/cart/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          quantity: 1,
-        }),
-      });
+      const token = localStorage.getItem('token');
+      if (token) {
+        // For logged-in users, add to server cart
+        const response = await fetch('http://localhost:8000/api/cart/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${token}`
+          },
+          body: JSON.stringify({
+            product: productId,
+            quantity: 1
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to add item to cart');
+        if (!response.ok) {
+          throw new Error('Failed to add to cart');
+        }
+
+        // Dispatch cart updated event for logged-in users
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+      } else {
+        // For non-logged in users, add to localStorage cart
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const existingItem = cart.find((item: any) => item.product === productId);
+        
+        if (existingItem) {
+          existingItem.quantity += 1;
+        } else {
+          cart.push({
+            product: productId,
+            quantity: 1,
+            name: product.name,
+            price: product.price,
+            image: getCategoryImage(product.category_name, product.model_name),
+            brand_name: product.brand_name,
+            model_name: product.model_name,
+            category_name: product.category_name
+          });
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(cart));
+        
+        // Dispatch both events to ensure all listeners are notified
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
       }
 
-      // Show success message or update UI
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add item to cart');
+      // Show success message
+      alert('Item added to cart successfully!');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setError(error instanceof Error ? error.message : 'Failed to add item to cart');
     }
   };
 
@@ -456,31 +490,40 @@ export default function ProductsPage() {
               key={product.id}
               className="group bg-[#1e293b]/50 backdrop-blur-sm rounded-lg shadow-md overflow-hidden border border-gray-700/50 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-1"
             >
-              <div className="relative h-48 bg-gray-800 overflow-hidden">
-                <img
-                  src={getCategoryImage(product.category_name, product.model_name)}
-                  alt={product.name}
-                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = '/file.svg';
-                    target.className = 'w-12 h-12 m-auto opacity-50';
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1e293b] via-transparent to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
-              </div>
-              <div className="p-4">
-                <h2 className="text-xl font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors duration-300">
-                  {product.name}
-                </h2>
-                <p className="text-gray-400 text-sm mb-4">
-                  {product.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors duration-300">
-                    ₹{typeof product.price === 'string' ? parseFloat(product.price).toFixed(2) : product.price.toFixed(2)}
-                  </span>
+              <Link href={`/products/${product.id}`} className="block">
+                <div className="relative h-48 bg-gray-800 overflow-hidden">
+                  <img
+                    src={getCategoryImage(product.category_name, product.model_name)}
+                    alt={product.name}
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = '/assets/file.svg';
+                      target.className = 'w-12 h-12 m-auto opacity-50';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1e293b] via-transparent to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
+                </div>
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors duration-300">
+                    {product.name}
+                  </h2>
+                  <p className="text-gray-400 text-sm mb-4">
+                    {product.description}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors duration-300">
+                      ₹{typeof product.price === 'string' ? parseFloat(product.price).toFixed(2) : product.price.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+              <div className="px-4 pb-4">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors duration-300">
+                    {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                  </div>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => addToWishlist(product.id)}
@@ -497,9 +540,6 @@ export default function ProductsPage() {
                       <FaShoppingCart className="h-5 w-5" />
                     </button>
                   </div>
-                </div>
-                <div className="mt-2 text-sm text-gray-400 group-hover:text-gray-300 transition-colors duration-300">
-                  {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
                 </div>
               </div>
             </div>

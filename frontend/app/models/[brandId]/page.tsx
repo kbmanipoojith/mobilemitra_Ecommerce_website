@@ -26,6 +26,15 @@ export default function BrandModelsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const getModelImage = (modelName: string, brandName: string) => {
+    // Format the brand name and model name to match the image filenames
+    const formattedBrandName = brandName.toUpperCase();
+    const formattedModelName = modelName.replace(/\s+/g, '_');
+    
+    // Try both formats (with and without brand prefix)
+    return `/assets/phones/${formattedBrandName}_${formattedModelName}.jpg`;
+  };
+
   useEffect(() => {
     if (brandId) {
       Promise.all([
@@ -105,17 +114,40 @@ export default function BrandModelsPage() {
               className="group bg-[#1e293b]/50 backdrop-blur-sm rounded-lg p-6 hover:bg-[#1e293b]/70 transition-all duration-300 border border-gray-700/50 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transform hover:-translate-y-1"
             >
               <div className="aspect-w-16 aspect-h-9 mb-4 bg-gray-900 rounded-lg overflow-hidden">
-                {model.image ? (
-                  <img
-                    src={model.image}
-                    alt={model.name}
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
-                    No image
-                  </div>
-                )}
+                <img
+                  src={getModelImage(model.name, brand?.name || '')}
+                  alt={model.name}
+                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const brandName = brand?.name?.toUpperCase() || '';
+                    const modelName = model.name.replace(/\s+/g, '_');
+                    
+                    // Try different formats
+                    const formats = [
+                      `${modelName}.jpg`,  // Try without brand name
+                      `${brandName}_${modelName}.png`,  // Try PNG format
+                      `${modelName}.png`,  // Try PNG without brand name
+                      `${model.name}.jpg`,  // Try with spaces
+                      `${model.name}.png`   // Try with spaces PNG
+                    ];
+                    
+                    let currentFormat = 0;
+                    const tryNextFormat = () => {
+                      currentFormat++;
+                      if (currentFormat < formats.length) {
+                        target.src = `/assets/phones/${formats[currentFormat]}`;
+                        target.onerror = tryNextFormat;
+                      } else {
+                        target.src = '/assets/phones/file.svg';
+                        target.onerror = null;
+                      }
+                    };
+                    
+                    target.onerror = tryNextFormat;
+                    target.src = `/assets/phones/${formats[0]}`;
+                  }}
+                />
               </div>
               <h3 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors duration-300">
                 {model.name}

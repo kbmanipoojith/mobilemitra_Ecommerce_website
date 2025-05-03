@@ -2,9 +2,40 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { FaShoppingCart } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    // Get cart count from localStorage
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      setCartCount(cart.length);
+    };
+
+    // Initial cart count
+    updateCartCount();
+
+    // Listen for cart updates
+    const handleStorageChange = () => {
+      updateCartCount();
+    };
+
+    const handleCartUpdate = () => {
+      updateCartCount();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, []);
 
   const isActive = (path: string) => {
     return pathname === path ? 'text-blue-400' : 'text-gray-300 hover:text-blue-400';
@@ -49,7 +80,7 @@ export default function Navbar() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             <Link
               href="/search"
               className="text-gray-300 hover:text-blue-400 transition-colors duration-300"
@@ -67,6 +98,17 @@ export default function Navbar() {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
+            </Link>
+            <Link
+              href="/cart"
+              className="text-gray-300 hover:text-blue-400 transition-colors duration-300 relative"
+            >
+              <FaShoppingCart className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/auth/login"
