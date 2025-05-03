@@ -182,7 +182,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ![Screenshot](Screenshots/3.png)
 ![Screenshot](Screenshots/4.png)
 ![Screenshot](Screenshots/5.png)
-![Screenshot](Screenshots/6.png)
+![6](https://github.com/user-attachments/assets/56a8f127-ba0b-4b5a-b69e-e7319696097c)
 ![Screenshot](Screenshots/7.png)
 ![Screenshot](Screenshots/8.png)
 ![Screenshot](Screenshots/9.png)
