@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import { FaShoppingCart, FaHeart, FaStar } from 'react-icons/fa';
 
@@ -230,15 +231,17 @@ export default function FeaturedProducts() {
               </button>
 
               {/* Product Image */}
-              <div className="w-full h-64 relative group-hover:scale-105 transition-transform duration-300">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover object-center"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                />
-              </div>
+              <Link href={`/products/${product.id}`} className="block">
+                <div className="w-full h-64 relative group-hover:scale-105 transition-transform duration-300">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-cover object-center"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  />
+                </div>
+              </Link>
 
               {/* Product Info */}
               <div className="p-6">
@@ -247,8 +250,8 @@ export default function FeaturedProducts() {
                     <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
                       {product.brand}
                     </p>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                      {product.name}
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-1 hover:text-blue-500 transition-colors duration-300">
+                      <Link href={`/products/${product.id}`}>{product.name}</Link>
                     </h3>
                   </div>
                 </div>
@@ -275,7 +278,7 @@ export default function FeaturedProducts() {
                 {/* Price and Add to Cart */}
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    ${product.price.toFixed(2)}
+                    ₹{product.price.toFixed(2)}
                   </p>
                   <button
                     onClick={() => addToCart(product)}
@@ -297,4 +300,4 @@ export default function FeaturedProducts() {
       </div>
     </section>
   );
-} 
+}

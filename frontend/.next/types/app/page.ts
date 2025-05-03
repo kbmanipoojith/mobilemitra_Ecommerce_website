@@ -1,4 +1,4 @@
-// File: C:\cursor new ver\cursor new\mobilemitra\frontend\app\page.tsx
+// File: C:\Users\Kb Manipoojith\Downloads\Chrome Downloads\cursor new ver (2)\cursor new ver\cursor new\mobilemitra\frontend\app\page.tsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
