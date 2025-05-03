@@ -40,26 +40,35 @@ export default function UserLoginPage() {
         }),
       });
 
-      const data = await response.json();
-      console.log('Login response:', data);
+      // Check content type to avoid parsing HTML as JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log('Login response:', data);
 
-      if (!response.ok) {
-        throw new Error(data.detail || data.message || 'Failed to login');
-      }
-
-      if (data.access) {
-        // Store tokens and user data
-        localStorage.setItem('accessToken', data.access);
-        localStorage.setItem('refreshToken', data.refresh);
-        localStorage.setItem('userType', 'user');
-        if (data.user) {
-          localStorage.setItem('userData', JSON.stringify(data.user));
+        if (!response.ok) {
+          throw new Error(data.detail || data.message || 'Failed to login');
         }
 
-        // Redirect to user dashboard
-        router.push('/user/dashboard');
+        if (data.access) {
+          // Store tokens and user data
+          localStorage.setItem('accessToken', data.access);
+          localStorage.setItem('refreshToken', data.refresh);
+          localStorage.setItem('userType', 'user');
+          if (data.user) {
+            localStorage.setItem('userData', JSON.stringify(data.user));
+          }
+
+          // Redirect to user dashboard
+          router.push('/user/dashboard');
+        } else {
+          throw new Error('Invalid response from server');
+        }
       } else {
-        throw new Error('Invalid response from server');
+        // Handle non-JSON responses (like HTML error pages)
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text);
+        setError('Server error. Please try again later.');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -178,4 +187,4 @@ export default function UserLoginPage() {
       </div>
     </div>
   );
-} 
+}

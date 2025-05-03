@@ -23,38 +23,53 @@ export default function SellerLogin() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           ...formData,
           is_seller: true,
         }),
       });
 
-      const data = await response.json();
+      // Check content type to avoid parsing HTML as JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
 
-      if (response.ok) {
-        if (data.user?.type === 'seller') {
-          // Store tokens and user data
-          localStorage.setItem('accessToken', data.access);
-          localStorage.setItem('refreshToken', data.refresh);
-          localStorage.setItem('userData', JSON.stringify(data.user));
-          
-          // Redirect to seller dashboard
-          router.push('/seller/dashboard');
+        if (response.ok) {
+          if (data.user?.type === 'seller') {
+            // Store tokens and user data
+            localStorage.setItem('accessToken', data.access);
+            localStorage.setItem('refreshToken', data.refresh);
+            localStorage.setItem('userData', JSON.stringify(data.user));
+            
+            // Redirect to seller dashboard
+            router.push('/seller/dashboard');
+          } else {
+            setError('This account is not a seller account. Please use a seller account to login.');
+            // Clear any stored data
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userData');
+          }
         } else {
-          setError('This account is not a seller account. Please use a seller account to login.');
-          // Clear any stored data
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('userData');
+          // Show the error message from the backend
+          setError(data.detail || 'Login failed. Please try again.');
         }
       } else {
-        // Show the error message from the backend
-        setError(data.detail || 'Login failed. Please try again.');
+        // Handle non-JSON responses (like HTML error pages)
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text);
+        setError('Server error. Please try again later.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Something went wrong. Please try again.');
+      setError('Network error. Please check your connection and try again.');
+      // Log additional details for debugging
+      if (err instanceof Error) {
+        console.error('Error details:', err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -137,4 +152,4 @@ export default function SellerLogin() {
       </div>
     </div>
   );
-} 
+}

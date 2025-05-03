@@ -50,37 +50,57 @@ export default function SellerRegisterPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      // Check content type to avoid parsing HTML as JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
 
-      if (!response.ok) {
-        // Handle different types of errors
-        if (data.email) {
-          setError(Array.isArray(data.email) ? data.email[0] : data.email);
-        } else if (data.password) {
-          setError(Array.isArray(data.password) ? data.password[0] : data.password);
-        } else if (data.error) {
-          setError(data.error);
-        } else if (data.message) {
-          setError(data.message);
-        } else {
-          setError('Registration failed. Please try again.');
+        if (!response.ok) {
+          // Handle different types of errors
+          if (data.email) {
+            setError(Array.isArray(data.email) ? data.email[0] : data.email);
+          } else if (data.username) {
+            setError(Array.isArray(data.username) ? data.username[0] : data.username);
+          } else if (data.password) {
+            setError(Array.isArray(data.password) ? data.password[0] : data.password);
+          } else if (data.detail) {
+            setError(data.detail);
+          } else if (data.error) {
+            setError(data.error);
+          } else if (data.message) {
+            setError(data.message);
+          } else {
+            setError('Registration failed. Please check your information and try again.');
+          }
+          console.error('Registration error details:', data);
+          return;
         }
-        return;
+
+        // Store tokens
+        localStorage.setItem('accessToken', data.access);
+        localStorage.setItem('refreshToken', data.refresh);
+
+        // Redirect to seller dashboard
+        router.push('/seller/dashboard');
+      } else {
+        // Handle non-JSON responses (like HTML error pages)
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text);
+        setError('Server error. Please try again later.');
       }
-
-      // Store tokens
-      localStorage.setItem('accessToken', data.access);
-      localStorage.setItem('refreshToken', data.refresh);
-
-      // Redirect to seller dashboard
-      router.push('/seller/dashboard');
     } catch (err) {
       console.error('Registration error:', err);
-      setError('An error occurred during registration. Please try again.');
+      setError('Network error during registration. Please check your connection and try again.');
+      // Log additional details for debugging
+      if (err instanceof Error) {
+        console.error('Error details:', err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -291,4 +311,4 @@ export default function SellerRegisterPage() {
       </div>
     </div>
   );
-} 
+}

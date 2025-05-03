@@ -1,6 +1,6 @@
 # MobileMitra - Mobile Parts E-commerce Platform
 
-MobileMitra is a full-stack e-commerce platform specializing in mobile phone parts and repair services. Built with Django REST Framework backend and Next.js frontend, it provides a seamless experience for both users and sellers.
+MobileMitra is a full-stack multi vendor e-commerce platform specializing in mobile phone parts and repair services. Built with Django REST Framework backend and Next.js frontend, it provides a seamless experience for both users and sellers.
 
 ## Features
 
@@ -81,6 +81,7 @@ MobileMitra is a full-stack e-commerce platform specializing in mobile phone par
    ```sql
    CREATE DATABASE mobilemitra CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
+''If you face any difficulty in creating the database, you can directly import it using the mobilemitra.sql file located in the backend folder'''
 
 6. Apply migrations:
    ```bash
@@ -167,12 +168,31 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
 - Django REST Framework
 - Next.js
 - Tailwind CSS
 - React Icons 
+
+## Screenshots
+![Screenshot](Screenshots/1.png)
+![Screenshot](Screenshots/2.png)
+![Screenshot](Screenshots/3.png)
+![Screenshot](Screenshots/4.png)
+![Screenshot](Screenshots/5.png)
+![Screenshot](Screenshots/6.png)
+![Screenshot](Screenshots/7.png)
+![Screenshot](Screenshots/8.png)
+![Screenshot](Screenshots/9.png)
+![Screenshot](Screenshots/10.png)
+![Screenshot](Screenshots/11.png)
+![Screenshot](Screenshots/12.png)
+![Screenshot](Screenshots/13.png)
+![Screenshot](Screenshots/14.png)
+![Screenshot](Screenshots/15.png)
+![Screenshot](Screenshots/16.png)
+![Screenshot](Screenshots/17.png)
+![Screenshot](Screenshots/18.png)
+

@@ -23,35 +23,64 @@ export default function Login() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      // Check content type to avoid parsing HTML as JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
 
-      if (response.ok) {
-        localStorage.setItem('accessToken', data.access);
-        localStorage.setItem('refreshToken', data.refresh);
-        
-        // Fetch user profile to determine if seller
-        const profileResponse = await fetch('http://localhost:8000/api/auth/profile/', {
-          headers: {
-            'Authorization': `Bearer ${data.access}`
+        if (response.ok) {
+          localStorage.setItem('accessToken', data.access);
+          localStorage.setItem('refreshToken', data.refresh);
+          
+          try {
+            // Fetch user profile to determine if seller
+            const profileResponse = await fetch('http://localhost:8000/api/auth/profile/', {
+              headers: {
+                'Authorization': `Bearer ${data.access}`,
+                'Accept': 'application/json'
+              },
+              credentials: 'include'
+            });
+            
+            // Check if profile response is JSON
+            const profileContentType = profileResponse.headers.get('content-type');
+            if (profileContentType && profileContentType.includes('application/json')) {
+              const profileData = await profileResponse.json();
+              
+              if (profileData.is_seller) {
+                router.push('/seller/dashboard');
+              } else {
+                router.push('/');
+              }
+            } else {
+              // If profile response is not JSON, default to user route
+              console.error('Profile API returned non-JSON response');
+              router.push('/');
+            }
+          } catch (profileErr) {
+            console.error('Error fetching profile:', profileErr);
+            router.push('/');
           }
-        });
-        
-        const profileData = await profileResponse.json();
-        
-        if (profileData.is_seller) {
-          router.push('/seller/dashboard');
         } else {
-          router.push('/');
+          setError(data.detail || 'Invalid credentials');
         }
       } else {
-        setError(data.detail || 'Invalid credentials');
+        // Handle non-JSON responses (like HTML error pages)
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text);
+        setError('Server error. Please try again later.');
+        // Log the response status for debugging
+        console.error('Response status:', response.status, response.statusText);
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      console.error('Login error:', err);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -134,4 +163,4 @@ export default function Login() {
       </div>
     </div>
   );
-} 
+}

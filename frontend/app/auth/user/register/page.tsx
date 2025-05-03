@@ -52,6 +52,7 @@ export default function UserRegisterPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           username: formData.username,
@@ -64,20 +65,28 @@ export default function UserRegisterPage() {
         }),
       });
 
-      const data = await response.json();
+      // Check content type to avoid parsing HTML as JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
 
-      if (!response.ok) {
-        if (typeof data === 'object' && data !== null) {
-          setError(data);
-        } else {
-          throw new Error(data.detail || 'Registration failed');
+        if (!response.ok) {
+          if (typeof data === 'object' && data !== null) {
+            setError(data);
+          } else {
+            throw new Error(data.detail || 'Registration failed');
+          }
+          return;
         }
-        setLoading(false);
-        return;
-      }
 
-      // Redirect to login page after successful registration
-      router.push('/auth/user/login');
+        // Redirect to login page after successful registration
+        router.push('/auth/user/login');
+      } else {
+        // Handle non-JSON responses (like HTML error pages)
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text);
+        setError('Server error. Please try again later.');
+      }
     } catch (err) {
       console.error('Registration error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred during registration');
@@ -288,4 +297,4 @@ export default function UserRegisterPage() {
       </div>
     </div>
   );
-} 
+}
